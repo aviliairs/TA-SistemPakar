@@ -53,6 +53,23 @@
      .modal-dialog {
        pointer-events: auto;
      }
+     .btn-active {
+        background-color: #7c8291;
+        color: white;
+        border: 1px solid #9b9c9f;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+    .btn-inactive {
+        background-color: white;
+        color: #7c8291;
+        border: 1px solid #9b9c9f;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+    .kategori-section.hidden {
+        display: none;
+    }
    </style>
 </head>
 
@@ -92,6 +109,13 @@
           <i class="fas fa-plus me-1"></i> Tambah Gejala
         </button>
     </div>
+     <div class="d-flex ms-4 mb-4 gap-2" id="kategori-buttons">
+      <button class="btn-active" onclick="setKategori(this, 'semua')">Semua</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'reproduksi')">Reproduksi</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'gizi')">Gizi</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'mental')">Mental</button>
+    </div>
+
 
     <div class="container-fluid py-2">
       <div class="row">
@@ -117,8 +141,12 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @foreach($gejalas as $gejala)
-                      <tr>
+                    @foreach($gejalas as $kategori => $listGejala)
+                    <tr class="kategori-section kategori-header" data-kategori="{{ strtolower($kategori) }}">
+                    </tr>
+
+                    @foreach($listGejala as $gejala)
+                      <tr class="kategori-section pertanyaan-row" data-kategori="{{ strtolower($kategori) }}">
                         <td class="text-sm">{{ $gejala->id_gejala}}</td>
                         <td>
                           <div class="d-flex px-2 py-1">
@@ -153,6 +181,7 @@
                             </button>
                         </td>
                       </tr>
+                      @endforeach
                     @endforeach
                   </tbody>
                 </table>
@@ -291,6 +320,40 @@
   <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
 
   <script>
+      // Fungsi untuk filter kategori
+  function setKategori(button, kategori) {
+    // Update style tombol
+    const buttons = document.querySelectorAll('#kategori-buttons button');
+    buttons.forEach(btn => {
+      btn.classList.remove('btn-active');
+      btn.classList.add('btn-inactive');
+    });
+
+    button.classList.remove('btn-inactive');
+    button.classList.add('btn-active');
+
+    // Filter tabel berdasarkan kategori
+    const kategoriSections = document.querySelectorAll('.kategori-section');
+
+    if (kategori === 'semua') {
+      // Tampilkan semua
+      kategoriSections.forEach(section => {
+        section.classList.remove('hidden');
+      });
+    } else {
+      // Sembunyikan semua dulu
+      kategoriSections.forEach(section => {
+        section.classList.add('hidden');
+      });
+
+      // Tampilkan hanya kategori yang dipilih
+      const selectedSections = document.querySelectorAll(`[data-kategori="${kategori}"]`);
+      selectedSections.forEach(section => {
+        section.classList.remove('hidden');
+      });
+    }
+  }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Script untuk modal edit
         const editButtons = document.querySelectorAll('.edit-btn');

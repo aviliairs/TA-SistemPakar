@@ -53,6 +53,23 @@
      .modal-dialog {
        pointer-events: auto;
      }
+    .btn-active {
+        background-color: #7c8291;
+        color: white;
+        border: 1px solid #9b9c9f;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+    .btn-inactive {
+        background-color: white;
+        color: #7c8291;
+        border: 1px solid #9b9c9f;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+    .kategori-section.hidden {
+        display: none;
+    }
    </style>
 </head>
 
@@ -93,6 +110,13 @@
         </button>
     </div>
 
+      <div class="d-flex ms-4 mb-4 gap-2" id="kategori-buttons">
+      <button class="btn-active" onclick="setKategori(this, 'semua')">Semua</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'reproduksi')">Reproduksi</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'gizi')">Gizi</button>
+      <button class="btn-inactive" onclick="setKategori(this, 'mental')">Mental</button>
+    </div>
+
     <div class="container-fluid py-2">
       <div class="row">
         <div class="col-12">
@@ -117,8 +141,13 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @foreach($pertanyaans as $pertanyaan)
-                      <tr>
+
+                    @foreach($pertanyaans as $kategori => $listPertanyaan)
+                    <tr class="kategori-section kategori-header" data-kategori="{{ strtolower($kategori) }}">
+                    </tr>
+
+                    @foreach($listPertanyaan as $pertanyaan)
+                      <tr class="kategori-section pertanyaan-row" data-kategori="{{ strtolower($kategori) }}">
                         <td class="text-sm">{{ $pertanyaan->id}}</td>
                         <td>
                           <div class="d-flex px-2 py-1">
@@ -135,7 +164,7 @@
                                     data-bs-target="#editModal"
                                     data-id="{{ $pertanyaan->id }}"
                                     data-kode_gejala="{{ $pertanyaan->kode_gejala }}"
-                                    data-pertanyaan="{{ $pertanyaan->pertanyaan }}"
+                                    data-pertanyaan="{{e($pertanyaan->pertanyaan)  }}"
                                     data-kategori="{{ $pertanyaan->kategori }}"
                                     title="Edit Pertanyaan">
                                 <i class="fas fa-edit"></i>
@@ -152,6 +181,7 @@
                             </button>
                         </td>
                       </tr>
+                      @endforeach
                     @endforeach
                   </tbody>
                 </table>
@@ -232,7 +262,7 @@
             <div class="mb-3">
               <label for="edit_pertanyaan" class="form-label">Pertanyaan</label>
               <div class="input-group input-group-outline">
-                <textarea name="pertanyaan" class="form-control" rows="4" required></textarea>
+                <textarea name="pertanyaan" id="edit_pertanyaan" class="form-control"  rows="4" required></textarea>
               </div>
             </div>
             <div class="mb-3">
@@ -297,7 +327,42 @@
   <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
   <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
 
-  <script>
+
+<script>
+  // Fungsi untuk filter kategori
+  function setKategori(button, kategori) {
+    // Update style tombol
+    const buttons = document.querySelectorAll('#kategori-buttons button');
+    buttons.forEach(btn => {
+      btn.classList.remove('btn-active');
+      btn.classList.add('btn-inactive');
+    });
+
+    button.classList.remove('btn-inactive');
+    button.classList.add('btn-active');
+
+    // Filter tabel berdasarkan kategori
+    const kategoriSections = document.querySelectorAll('.kategori-section');
+
+    if (kategori === 'semua') {
+      // Tampilkan semua
+      kategoriSections.forEach(section => {
+        section.classList.remove('hidden');
+      });
+    } else {
+      // Sembunyikan semua dulu
+      kategoriSections.forEach(section => {
+        section.classList.add('hidden');
+      });
+
+      // Tampilkan hanya kategori yang dipilih
+      const selectedSections = document.querySelectorAll(`[data-kategori="${kategori}"]`);
+      selectedSections.forEach(section => {
+        section.classList.remove('hidden');
+      });
+    }
+  }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Script untuk modal edit
         const editButtons = document.querySelectorAll('.edit-btn');

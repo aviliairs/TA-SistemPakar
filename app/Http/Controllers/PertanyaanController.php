@@ -11,7 +11,8 @@ class PertanyaanController extends Controller
 {
     public function index()
     {
-        $pertanyaans = Pertanyaan::all();
+        $pertanyaans = \App\Models\Pertanyaan::all()->groupBy('kategori');
+
         return view('admin.Pertanyaan', compact('pertanyaans'));
     }
 
@@ -39,7 +40,7 @@ class PertanyaanController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+       $validated = $request->validate([
             'kode_gejala' => 'required|string|max:255',
             'pertanyaan' => 'required|string|max:255',
             'kategori' => 'required|in:reproduksi,gizi,mental',

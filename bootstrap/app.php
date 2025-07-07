@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
     //     $middleware->global([
-    //     \App\Http\Middleware\PreventBackHistory::class, // Tambahkan ini
+    //     \App\Http\Middleware\PreventBackHistory::class,
     // ]);
 
         $middleware->alias([

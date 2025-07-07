@@ -24,22 +24,22 @@ class RoleMiddleware
     $userRole = Auth::user()->role;
 
     if ($userRole !== $role) {
-        return $this->redirectToRoleDashboard($userRole);
+        abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengakses halaman ini.');
     }
 
     return $next($request);
     }
 
-    private function redirectToRoleDashboard($role)
-    {
+    // private function redirectToRoleDashboard($role)
+    // {
 
-    switch ($role) {
-        case 'Admin':
-            return redirect()->route('admin.dashboard')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
-        case 'User':
-            return redirect()->route('diagnosa.form')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
-        default:
-            return redirect()->route('home.index')->with('error', 'Role tidak dikenali');
-    }
-    }
+    // switch ($role) {
+    //     case 'Admin':
+    //         return redirect()->route('admin.dashboard')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
+    //     case 'User':
+    //         return redirect()->route('diagnosa.form')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
+    //     default:
+    //         return redirect()->route('home.index')->with('error', 'Role tidak dikenali');
+    // }
+    // }
 }

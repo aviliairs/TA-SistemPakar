@@ -11,13 +11,10 @@ class GejalaController extends Controller
 {
     public function index()
     {
-        $gejalas = Gejala::all();
+        $gejalas = \App\Models\Gejala::all()->groupBy('kategori');
         return view('admin.Gejala', compact('gejalas'));
     }
-    // public function create()
-    // {
-    //     return view('admin.CreateGejala');
-    // }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -37,11 +34,6 @@ class GejalaController extends Controller
 
         return redirect()->back()->with('success', 'Data gejala berhasil dihapus.');
     }
-    // public function edit($id_gejala)
-    // {
-    //     $gejala = Gejala::findOrFail($id_gejala);
-    //     return view('admin.EditGejala', compact('gejala'));
-    // }
 
     public function update(Request $request, $id_gejala)
     {
