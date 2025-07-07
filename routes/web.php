@@ -19,11 +19,11 @@ use App\Http\Controllers\UbahPasswordController;
 //tampilan user
 Route::get('/', function () {return view('home.index');})->name('home.index');
 
-Route::middleware(['auth', 'role:User'])->group(function () {
+Route::middleware(['auth', 'role:User', 'prevent.back'])->group(function () {
     Route::get('/diagnosa', [DiagnosaController::class, 'form'])->name('diagnosa.form');
 });
 //tampilan admin
-   Route::middleware(['auth', 'role:Admin'])->group(function () {
+   Route::middleware(['auth', 'role:Admin', 'prevent.back'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
 });
 

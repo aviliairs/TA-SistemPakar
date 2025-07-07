@@ -36,14 +36,14 @@
             <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Tables</li>
           </ol>
         </nav>
-        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
+        {{-- <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
           <div class="ms-md-auto pe-md-3 d-flex align-items-center">
             <div class="input-group input-group-outline">
               <label class="form-label">Type here...</label>
               <input type="text" class="form-control">
             </div>
           </div>
-        </div>
+        </div> --}}
     </div>
     </nav>
     <!-- End Navbar -->
@@ -90,18 +90,42 @@
                         <td class="text-sm">{{ $user->jenis_kelamin }}</td>
                         <td class="text-sm">{{ $user->email }}</td>
                         <td class="text-center">
-                            <form action="{{ route('user.destroy', $user->id_user) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?');">
-                              @csrf
-                              @method('DELETE')
-                              <button type="submit" class="btn btn-danger" title="Hapus User" ><i class="fas fa-trash"></i></button>
-                              </button>
-                            </form>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-nama="{{ $user->nama }}" data-user-id="{{ $user->id_user }}">
+                            <i class="fas fa-trash"></i>
+                            </button>
+
                           </td>
 
                       </tr>
                     @endforeach
                   </tbody>
                 </table>
+                <!-- Modal Konfirmasi Hapus -->
+                    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="confirmDeleteModalLabel">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            Konfirmasi Penghapusan
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Apakah Anda yakin ingin menghapus data ini?</p>
+                            {{-- <p class="fw-bold text-primary mb-3" id="nama"> {{ $user->nama }}</p> --}}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <form method="POST" action="{{ route('user.destroy', $user->id_user) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                        </form>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
               </div>
             </div>
           </div>
@@ -128,6 +152,14 @@
       }
       Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
     }
+
+    const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const form = document.getElementById('deleteUserForm');
+        form.action = '/user/' + userId; // Pastikan sesuai route
+    });
   </script>
   <!-- Github buttons -->
   <script async defer src="https://buttons.github.io/buttons.js"></script>

@@ -35,8 +35,7 @@
                     <span class="badge"></span>
                 @endif
 
-                <img src="{{ asset(session('user_profile.avatar') ?? 'default-avatar.png') }}"
-                     alt="Avatar" class="rounded-circle me-2" width="32" height="32">
+                <img src="https://img.icons8.com/bubbles/100/000000/user.png" class="img-radius" alt="User-Profile-Image" width="64" height="64">
                 <a href="{{ route('profile.show') }}" class="text-decoration-none text-dark fw-semibold me-3">
                     {{ session('user_profile.nama') }}
                 </a>
