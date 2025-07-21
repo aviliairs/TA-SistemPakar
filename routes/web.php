@@ -16,11 +16,11 @@ use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\UbahPasswordController;
 
 
-//tampilan user
+//tampilan awal
 Route::get('/', function () {return view('home.index');})->name('home.index');
 
 Route::middleware(['auth', 'role:User', 'prevent.back'])->group(function () {
-    Route::get('/diagnosa', [DiagnosaController::class, 'form'])->name('diagnosa.form');
+    Route::get('/diagnosa/pertanyaan/{index}', [DiagnosaController::class, 'tampilkanPertanyaan'])->name('diagnosa.pertanyaan');
 });
 //tampilan admin
    Route::middleware(['auth', 'role:Admin', 'prevent.back'])->group(function () {
@@ -73,7 +73,7 @@ Route::delete('/admin/gejala/{id_gejala}', [GejalaController::class, 'destroy'])
 Route::put('/admin/gejala/{id_gejala}', [GejalaController::class, 'update'])->name('gejala.update');
 
 //Aturan
-Route::get('/admin/daftar-aturan', [AturanController::class, 'index'])->name('DaftarAturan.index');
+Route::get('/admin/daftar-aturan', [AturanController::class, 'index'])->name('aturan.index');
 Route::post('/admin/aturan', [AturanController::class, 'store'])->name('aturan.store');
 //hapus dan edit
 Route::delete('/admin/aturan/{id_rule}', [AturanController::class, 'destroy'])->name('aturan.destroy');
@@ -86,8 +86,17 @@ Route::get('/user/riwayat-konsultasi', [KonsultasiController::class, 'riwayatUse
 Route::get('/user/hasil-diagnosa/{id_user}', [KonsultasiController::class, 'hasilPdf'])->name('diagnosa.hasilPdf');
 
 //menampilkan pertanyaan di halaman diagnosa
-Route::post('/diagnosa/submit', [DiagnosaController::class, 'submitDiagnosa'])->name('diagnosa.submit');
-Route::get('/diagnosa', [DiagnosaController::class, 'formDiagnosa'])->name('diagnosa.form');
+// Route untuk pilih profil
+Route::post('/diagnosa/pilih-profil', [DiagnosaController::class, 'pilihProfil'])->name('diagnosa.pilih-profil');
+// Route untuk memulai diagnosa (pertanyaan pertama)
+Route::get('/diagnosa/mulai', [DiagnosaController::class, 'mulaiDiagnosa'])->name('diagnosa.mulai');
+// Route untuk menampilkan pertanyaan berdasarkan index
+Route::get('/diagnosa/pertanyaan/', [DiagnosaController::class, 'tampilkanPertanyaan'])->name('diagnosa.pertanyaan');
+// Route untuk menyimpan jawaban dan lanjut
+Route::post('/diagnosa/pertanyaan/', [DiagnosaController::class, 'jawabPertanyaan'])->name('diagnosa.jawab');
+// Route untuk submit final dan tampilkan hasil
+Route::get('/diagnosa/selesai', [DiagnosaController::class, 'submitDariSession'])->name('diagnosa.selesai');
+
 // // Route::get('/diagnosa/show', [DiagnosaController::class, 'show'])->name('diagnosa.show');
 Route::post('/hasil', [DiagnosaController::class, 'proses'])->name('hasil');
 Route::get('/diagnosa/cetak-pdf/{id_user}' , [DiagnosaController::class, 'cetakPdf'])->name('diagnosa.cetakPdf');

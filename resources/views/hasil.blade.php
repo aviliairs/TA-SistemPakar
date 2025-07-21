@@ -10,7 +10,7 @@
             <div class="card mt-4">
                 <div class="card-body">
                     <p><strong>Kategori:</strong> {{ $h['kategori'] }}</p>
-                    <p><strong>Kondisi:</strong> Dari Hasil Diagnosa, anda dinilai <strong> {{ $h['kondisi'] }} </strong></p>
+                    <p><strong>Kondisi:</strong> Dari Hasil Diagnosa yang sudah anda lakukan, menunjukkan hasil bahwa anda mengalami <strong> {{ $h['kondisi'] }} </strong></p>
                     <p><strong>Kesimpulan:</strong> Silakan klik Cetak PDF untuk melihat kesimpulan dan saran</p>
                     </div>
             </div>

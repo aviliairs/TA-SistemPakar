@@ -16,6 +16,7 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, $role)
     {
+        //membatasi akses berdasarkan peran
 
     if (!Auth::check()) {
         return redirect()->route('login');
@@ -30,16 +31,4 @@ class RoleMiddleware
     return $next($request);
     }
 
-    // private function redirectToRoleDashboard($role)
-    // {
-
-    // switch ($role) {
-    //     case 'Admin':
-    //         return redirect()->route('admin.dashboard')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
-    //     case 'User':
-    //         return redirect()->route('diagnosa.form')->with('error', 'Anda tidak memiliki akses ke halaman tersebut');
-    //     default:
-    //         return redirect()->route('home.index')->with('error', 'Role tidak dikenali');
-    // }
-    // }
 }

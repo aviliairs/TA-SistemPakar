@@ -11,8 +11,8 @@ class AturanController extends Controller
 {
     public function index()
     {
-        $aturans = aturan::all();
-        return view('admin.DaftarAturan', compact('aturans'));
+        $aturans = \App\Models\Aturan::all()->groupBy('kategori');
+        return view('admin.DaftarAturan', compact('aturans')); //mengirim variabel ke view blade
     }
 
     public function store(Request $request)
@@ -21,13 +21,13 @@ class AturanController extends Controller
             'kode_rule' => 'required|string|max:10',
             'kode_gejala' => 'required|string|max:255',
             'kategori' => 'required|in:reproduksi,gizi,mental',
-            'kondisi' => 'required|string|max:15',
+            'kondisi' => 'required|string|max:50',
             'kesimpulan' => 'required|string|max:10000',
 
         ]);
         aturan::create($validated);
 
-        return redirect()->route('DaftarAturan.index')->with('success', 'Aturan berhasil ditambahkan');
+        return redirect()->route('aturan.index')->with('success', 'Aturan berhasil ditambahkan');
     }
 
     public function destroy($id)
@@ -44,13 +44,13 @@ class AturanController extends Controller
             'kode_rule' => 'required|string|max:10',
             'kode_gejala' => 'required|string|max:255',
             'kategori' => 'required|in:reproduksi,gizi,mental',
-            'kondisi' => 'required|string|max:15',
+            'kondisi' => 'required|string|max:50',
             'kesimpulan' => 'required|string|max:10000',
         ]);
 
         $aturan = Aturan::findOrFail($id);
         $aturan->update($request->all());
 
-        return redirect()->route('DaftarAturan.index')->with('success', 'Aturan berhasil diupdate');
+        return redirect()->route('aturan.index')->with('success', 'Aturan berhasil diupdate');
     }
 }

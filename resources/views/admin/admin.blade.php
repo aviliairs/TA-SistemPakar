@@ -78,7 +78,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {{ request()->routeIs('DaftarAturan.index') ? 'active bg-gray-100 text-dark' : 'text-dark' }}" href="{{ route('DaftarAturan.index')}}">
+            <a class="nav-link {{ request()->routeIs('aturan.index') ? 'active bg-gray-100 text-dark' : 'text-dark' }}" href="{{ route('aturan.index')}}">
               <i class="material-symbols-rounded opacity-5">table_view</i>
               <span class="nav-link-text ms-1">Daftar Aturan</span>
             </a>

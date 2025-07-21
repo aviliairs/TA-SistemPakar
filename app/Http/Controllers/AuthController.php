@@ -66,7 +66,7 @@ class AuthController extends Controller
                         'avatar' => $user->avatar ?? 'default-avatar.png'
                ]]);
 
-            return redirect()->route('diagnosa.form');
+            return redirect()->route('diagnosa.mulai');
         }
    }
 

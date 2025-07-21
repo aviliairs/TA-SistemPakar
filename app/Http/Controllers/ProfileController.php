@@ -20,6 +20,6 @@ class ProfileController extends Controller
 public function setProfile(Request $request): RedirectResponse
 {
 
-    return redirect()->route('diagnosa.form')->with('success', 'Profil berhasil diperbarui');
+    return redirect()->route('diagnosa.pertanyaan')->with('success', 'Profil berhasil diperbarui');
 }
 }

@@ -34,121 +34,271 @@ class DiagnosaController extends Controller
         session(['user_profile' => [
                 'id' => $user->id_user,
                 'nama' => $user->nama,
-                'avatar' => $user->avatar, // atau field avatar sesuai database
+                'avatar' => $user->avatar,
                 'jenis_kelamin' => $user->jenis_kelamin,
     ]]);
 
-    return redirect()->route('diagnosa.form');
+    return redirect()->route('diagnosa.mulai');
     }
 
-    public function formDiagnosa()
+   public function mulaiDiagnosa()
     {
-        $selectedProfile = session('selected_profile');
-        $profile = User::find($selectedProfile);
+        session()->forget([
+            'jawaban_diagnosa',
+            'pertanyaan_terjawab',
+            'antrian_gejala',
+            'kategori_saat_ini',
+            'urutan_kategori'
+        ]);
 
-        if (!$profile) {
-            return redirect()->route('home.index')->with('error', 'Profil tidak ditemukan');
+        $userId = session('selected_profile');
+        $user = User::find($userId);
+        if (!$user) {
+            return redirect()->route('home.index')->with('error', 'Profil tidak ditemukan.');
         }
 
-        $jenisKelamin = strtolower($profile->jenis_kelamin); // untuk memastikan lowercase: 'laki-laki' atau 'perempuan'
+        // Tentukan kategori berdasarkan jenis kelamin
+        $jenisKelamin = strtolower($user->jenis_kelamin);
+        $kategoriList = $jenisKelamin === 'laki-laki'
+            ? ['gizi', 'mental']
+            : ['reproduksi', 'gizi', 'mental'];
 
-        if ($jenisKelamin === 'laki-laki') {
-            $kategoriYangDitampilkan = ['gizi', 'mental'];
-        } else {
-            $kategoriYangDitampilkan = ['reproduksi', 'gizi', 'mental'];
-        }
+        session(['urutan_kategori' => $kategoriList, 'kategori_saat_ini' => $kategoriList[0]]);
 
+        // Ambil semua pertanyaan dari kategori pertama
         $pertanyaans = Pertanyaan::where('tampilkan_di_user', true)
-            ->whereIn('kategori', $kategoriYangDitampilkan)
-            ->get()
-            ->groupBy('kategori');
+            ->where('kategori', $kategoriList[0])
+            ->pluck('kode_gejala')
+            ->toArray();
 
-        $pertanyaansTerurut = [];
-            foreach ($kategoriYangDitampilkan as $kategori) {
-                if (isset($pertanyaans[$kategori])) {
-                    $pertanyaansTerurut[$kategori] = $pertanyaans[$kategori];
+        session([
+            'antrian_gejala' => $pertanyaans,
+            'pertanyaan_terjawab' => []
+        ]);
+
+        return redirect()->route('diagnosa.pertanyaan');
+    }
+
+   public function tampilkanPertanyaan()
+    {
+        $antrian = session('antrian_gejala', []);
+        $terjawab = session('pertanyaan_terjawab', []);
+        $kategoriSaatIni = session('kategori_saat_ini');
+
+        foreach ($antrian as $kodeGejala) {
+            if (!in_array($kodeGejala, $terjawab)) {
+                $pertanyaan = Pertanyaan::where('kode_gejala', $kodeGejala)->first();
+                if ($pertanyaan) {
+                    return view('diagnosa.per_pertanyaan', compact('pertanyaan'));
+                }
             }
         }
 
-        return view('diagnosa', [
-        'pertanyaansTerurut' => $pertanyaansTerurut,
-        'user' => $profile
-]);
+        // Semua pertanyaan di kategori ini selesai, pindah ke kategori berikutnya
+        $urutanKategori = session('urutan_kategori', []);
+        $indexSekarang = array_search($kategoriSaatIni, $urutanKategori);
+
+        if ($indexSekarang !== false && isset($urutanKategori[$indexSekarang + 1])) {
+            $kategoriSelanjutnya = $urutanKategori[$indexSekarang + 1];
+
+            $pertanyaansBaru = Pertanyaan::where('tampilkan_di_user', true)
+                ->where('kategori', $kategoriSelanjutnya)
+                ->pluck('kode_gejala')
+                ->toArray();
+
+            session([
+                'kategori_saat_ini' => $kategoriSelanjutnya,
+                'antrian_gejala' => $pertanyaansBaru,
+                'pertanyaan_terjawab' => []
+            ]);
+
+            return redirect()->route('diagnosa.pertanyaan');
+        }
+
+        // Semua kategori selesai → proses diagnosa
+        return redirect()->route('diagnosa.selesai');
     }
 
-    //METODE
+    public function jawabPertanyaan(Request $request)
+    {
+        $idPertanyaan = $request->input('id_pertanyaan');
+        $jawaban = $request->input('jawaban');
+        $kodeGejala = $request->input('kode_gejala');
+
+        // Simpan jawaban ke session
+        $jawabanSebelumnya = session('jawaban_diagnosa', []);
+        $jawabanSebelumnya[$idPertanyaan] = $jawaban;
+        session(['jawaban_diagnosa' => $jawabanSebelumnya]);
+
+        // Tandai gejala sudah dijawab
+        $terjawab = session('pertanyaan_terjawab', []);
+        $terjawab[] = $kodeGejala;
+        session(['pertanyaan_terjawab' => $terjawab]);
+
+        // Ambil antrian gejala saat ini
+        $antrian = session('antrian_gejala', []);
+
+        // Jika jawaban "ya", cari pertanyaan lanjutan dari rule yang sama
+        if ($jawaban === 'ya') {
+            $gejalaUserYa = [];
+
+            // Ambil semua kode gejala yang dijawab "ya"
+            foreach ($jawabanSebelumnya as $id => $val) {
+                if ($val === 'ya') {
+                    $pertanyaan = Pertanyaan::find($id);
+                    if ($pertanyaan) {
+                        $gejalaUserYa[] = $pertanyaan->kode_gejala;
+                    }
+                }
+            }
+
+            $kategoriSaatIni = session('kategori_saat_ini');
+            $aturanSesuai = Aturan::where('kategori', $kategoriSaatIni)->get();
+
+            $pertanyaanPrioritas = [];
+            $pertanyaanBiasa = [];
+
+            foreach ($aturanSesuai as $aturan) {
+                $listGejala = explode(',', $aturan->kode_gejala);
+                $listGejala = array_map('trim', $listGejala);
+
+                // Cek apakah gejala saat ini ada di rule ini
+                if (in_array($kodeGejala, $listGejala)) {
+                    // Ambil gejala lain di rule ini yang belum dijawab
+                    foreach ($listGejala as $g) {
+                        if (!in_array($g, $terjawab)) {
+                            $pertanyaanPrioritas[] = $g;
+                        }
+                    }
+                } else {
+                    // Rule lain - hitung kecocokan
+                    $jumlahCocok = count(array_intersect($listGejala, $gejalaUserYa));
+
+                    // Kalau cocok sebagian tapi belum semua, tambahkan sisanya
+                    if ($jumlahCocok > 0 && $jumlahCocok < count($listGejala)) {
+                        foreach ($listGejala as $g) {
+                            if (!in_array($g, $terjawab)) {
+                                $pertanyaanBiasa[] = $g;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Hapus gejala yang sudah dijawab dari antrian
+            $antrian = array_diff($antrian, $terjawab);
+
+            // Susun ulang antrian: prioritas dulu, kemudian sisanya
+            $pertanyaanPrioritas = array_unique($pertanyaanPrioritas);
+            $pertanyaanBiasa = array_unique($pertanyaanBiasa);
+            $sisaAntrian = array_diff($antrian, $pertanyaanPrioritas, $pertanyaanBiasa);
+
+            $antrian = array_merge($pertanyaanPrioritas, $pertanyaanBiasa, $sisaAntrian);
+
+        } else {
+            // Jika jawaban "tidak", lanjut ke pertanyaan berikutnya di antrian
+            // Hapus gejala yang sudah dijawab dari antrian
+            $antrian = array_diff($antrian, $terjawab);
+            $antrian = array_values($antrian); // Re-index array
+        }
+
+        // Update session antrian gejala
+        session(['antrian_gejala' => $antrian]);
+
+        return redirect()->route('diagnosa.pertanyaan');
+    }
+    public function submitDariSession()
+    {
+        // Ambil jawaban dari session dan buat request object
+        $jawaban = session('jawaban_diagnosa', []);
+
+        $request = new Request([
+            'jawaban' => $jawaban
+        ]);
+
+        return $this->submitDiagnosa($request);
+    }
+
     public function submitDiagnosa(Request $request)
     {
-        $selectedProfile = session('selected_profile');
-        $user = User::find($selectedProfile);
+        $jawaban = $request->input('jawaban', []);
+        $userId = session('selected_profile');
+        $user = User::find($userId);
+        $hasilDiagnosa = [];
 
         if (!$user) {
-            return redirect()->route('profile')->with('error', 'Profil tidak ditemukan');
+            return redirect()->route('home.index')->with('error', 'Profil tidak ditemukan.');
         }
-         $jenisKelamin = strtolower($user->jenis_kelamin);
-         $userID = $user->id_user;
 
+        // Kelompokkan jawaban berdasarkan kategori gejala
+        $jenisKelamin = strtolower($user->jenis_kelamin);
+        $kategoriList = $jenisKelamin === 'laki-laki'
+            ? ['gizi', 'mental']
+            : ['reproduksi', 'gizi', 'mental'];
 
-        $jawaban = $request->input('jawaban', []); // ['id_pertanyaan' => 'ya' / 'tidak']
-        $pertanyaanIDs = array_keys($jawaban);
-        $pertanyaans = Pertanyaan::whereIn('id', $pertanyaanIDs)->get();
+        // Inisialisasi array gejala per kategori
+        $gejalaUser = [];
+        foreach ($kategoriList as $kategori) {
+            $gejalaUser[$kategori] = [];
+        }
 
-        // Memisahkan gejala per kategori
-        $gejalaPerKategori = [];
-        foreach ($pertanyaans as $p) {
-            if (!empty($jawaban[$p->id]) && strtolower($jawaban[$p->id]) === 'ya') {
-                $gejalaPerKategori[$p->kategori][] = $p->kode_gejala;
+        // Proses jawaban 'ya' dan kelompokkan gejala berdasarkan kategori
+        foreach ($jawaban as $id => $isi) {
+            if ($isi == 'ya') {
+                $pertanyaan = Pertanyaan::find($id);
+                if ($pertanyaan && in_array($pertanyaan->kategori, $kategoriList)) {
+                    $gejalaUser[$pertanyaan->kategori][] = $pertanyaan->kode_gejala;
+                }
             }
         }
 
-        $hasilDiagnosa = [];
-        $jenisKelamin = strtolower($user->jenis_kelamin);
-        $userID = auth()->user()->id_user;
+        // Proses diagnosa berdasarkan aturan per kategori
+        foreach ($kategoriList as $kategori) {
+            $gejala = $gejalaUser[$kategori] ?? [];
 
-        if ($jenisKelamin === 'laki-laki') {
-            $kategoriDiagnosa = ['gizi', 'mental'];
-        } else {
-            $kategoriDiagnosa = ['reproduksi', 'gizi', 'mental'];
-        }
+            // Debug: tampilkan gejala yang dijawab ya
+            \Log::info("Kategori: $kategori, Gejala user: " . json_encode($gejala));
 
-        foreach ($kategoriDiagnosa as $kategori) {
-           $gejalaUser = array_map(function ($item) {return strtoupper(trim($item));}, $gejalaPerKategori[$kategori] ?? []);
-           $rules = Aturan::where('kategori', $kategori)->get();
+            $bestMatch = null;
+            $maxMatch = 0;
 
-           $bestMatch = null;
-           $maxMatchCount = 0;
-           $maxRuleGejala = 0;
-           $bestScore = -1;
+            $aturanList = Aturan::where('kategori', $kategori)->get();
 
-            foreach ($rules as $rule) {
-                $kode_rule = array_map(function ($item) {return strtoupper(trim($item));}, explode(',', $rule->kode_gejala));
-                $jumlahCocok = count(array_intersect($gejalaUser, $kode_rule));
-                $jumlahRuleGejala = count($kode_rule);
-                $jumlahUserGejala = count($gejalaUser);
+            foreach ($aturanList as $aturan) {
+                // Parse kode_gejala dari format string dengan koma
+                $aturanGejala = explode(',', $aturan->kode_gejala);
+                $aturanGejala = array_map('trim', $aturanGejala);
 
-                if ($jumlahCocok == 0) {
-                    continue;
+                // Hitung kecocokan
+                $matchCount = count(array_intersect($aturanGejala, $gejala));
+                $totalGejalaAturan = count($aturanGejala);
+
+                // Prioritaskan berdasarkan jumlah gejala yang cocok (lebih banyak = lebih baik)
+                // Jika jumlah sama, prioritaskan yang persentase kecocokannya lebih tinggi
+                $currentPercentage = $totalGejalaAturan > 0 ? ($matchCount / $totalGejalaAturan) : 0;
+
+                if ($bestMatch) {
+                    $bestMatchGejala = explode(',', $bestMatch->kode_gejala);
+                    $bestMatchGejala = array_map('trim', $bestMatchGejala);
+                    $bestPercentage = count($bestMatchGejala) > 0 ? ($maxMatch / count($bestMatchGejala)) : 0;
+                } else {
+                    $bestPercentage = 0;
                 }
 
-            // Skor berdasarkan dua sisi:
-            $persenRuleTerpenuhi = $jumlahRuleGejala > 0 ? $jumlahCocok / $jumlahRuleGejala : 0;
-            $persenInputTerpenuhi = $jumlahUserGejala > 0 ? $jumlahCocok / $jumlahUserGejala : 0;
-
-            $score = ($persenRuleTerpenuhi + $persenInputTerpenuhi) * 100;
-
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $bestMatch = $rule;
+                if ($matchCount > $maxMatch ||
+                    ($matchCount == $maxMatch && $matchCount > 0 && $currentPercentage > $bestPercentage)) {
+                    $maxMatch = $matchCount;
+                    $bestMatch = $aturan;
+                }
             }
 
-            }
-
+            
             Diagnosa::create([
-                'id_user' => auth()->user()->id_user,
-                'kode_gejala' => json_encode($gejalaUser),
+                'id_user' => $user->id_user,
+                'kode_gejala' => json_encode($gejala),
                 'kategori' => $kategori,
                 'kondisi' => $bestMatch ? $bestMatch->kondisi : 'Tidak Teridentifikasi',
-                'kesimpulan' => $bestMatch ? $bestMatch->kesimpulan : 'Tidak ada aturan yang sesuai dengan gejala Anda.',
+                'kesimpulan' => $bestMatch ? $bestMatch->kesimpulan : 'Tidak ada aturan yang sesuai.',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -156,18 +306,25 @@ class DiagnosaController extends Controller
             $hasilDiagnosa[] = [
                 'kategori' => $kategori,
                 'kondisi' => $bestMatch ? $bestMatch->kondisi : 'Tidak Teridentifikasi',
-                'kesimpulan' => $bestMatch ? $bestMatch->kesimpulan : 'Tidak ada aturan yang sesuai dengan gejala Anda.',
+                'kesimpulan' => $bestMatch ? $bestMatch->kesimpulan : 'Tidak ada aturan yang sesuai.',
+                'kode_aturan' => $bestMatch ? $bestMatch->kode_aturan : null, // Tambahkan untuk debug
+                'gejala_cocok' => $maxMatch // Tambahkan untuk debug
             ];
         }
-            Konsultasi::create([
-                'id_user' => $user->id_user,
-                'nama' => $user->nama,
-                'tanggal' => Carbon::now()->toDateString(),
-                'hasil' => json_encode($hasilDiagnosa)
-]);
-        return view('hasil', ['hasil' => $hasilDiagnosa, 'user'=>$user]);
-}
 
+        // Simpan ke riwayat konsultasi
+        Konsultasi::create([
+            'id_user' => $user->id_user,
+            'nama' => $user->nama,
+            'tanggal' => now()->toDateString(),
+            'hasil' => json_encode($hasilDiagnosa),
+        ]);
+
+        return view('hasil', [
+            'hasil' => $hasilDiagnosa,
+            'user' => $user
+        ]);
+    }
 
     public function cetakPdf($id_user)
     {

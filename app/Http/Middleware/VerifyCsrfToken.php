@@ -14,6 +14,7 @@ class VerifyCsrfToken
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
 
+     //melindungi dari CSRF yang tidak diperiksa laravel
         protected $except = [
             'post-registration',
             'post-login',

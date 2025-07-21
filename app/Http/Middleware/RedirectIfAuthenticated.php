@@ -19,14 +19,14 @@ class RedirectIfAuthenticated
         // Jangan redirect jika user sudah login dan bukan mengakses halaman guest
         if (Auth::check()) {
             $currentRoute = $request->route() ? $request->route()->getName() : '';
-            $guestRoutes = ['login', 'registration', 'password.request', 'password.reset'];
+            $guestRoutes = ['login', 'registration', 'password.request', 'password.reset']; //route yang dianggap untuk yang belum login
 
             // Hanya redirect jika benar-benar mengakses halaman guest
             if (in_array($currentRoute, $guestRoutes)) {
                 if (Auth::user()->role === 'Admin') {
                     return redirect()->route('admin.dashboard');
                 } elseif (Auth::user()->role === 'User') {
-                    return redirect()->route('diagnosa.form');
+                    return redirect()->route('diagnosa.pertanyaan');
                 }
             }
         }
